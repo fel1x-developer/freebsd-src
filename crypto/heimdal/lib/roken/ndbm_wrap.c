@@ -36,6 +36,8 @@
 #include "ndbm_wrap.h"
 #if defined(HAVE_DBHEADER)
 #include <db.h>
+#elif defined(HAVE_DB6_DB_H)
+#include <db6/db.h>
 #elif defined(HAVE_DB5_DB_H)
 #include <db5/db.h>
 #elif defined(HAVE_DB4_DB_H)
@@ -111,20 +113,20 @@ static datum
 dbm_get (DB *db, int flags)
 {
     DBT key, value;
-    datum datum;
+    datum d;
 #ifdef HAVE_DB3
     if(cursor == NULL)
 	db->cursor(db, NULL, &cursor, 0);
     if(cursor->c_get(cursor, &key, &value, flags) != 0) {
-	datum.dptr = NULL;
-	datum.dsize = 0;
+	d.dptr = NULL;
+	d.dsize = 0;
     } else
-	DBT2DATUM(&value, &datum);
+	DBT2DATUM(&value, &d);
 #else
     db->seq(db, &key, &value, flags);
-    DBT2DATUM(&value, &datum);
+    DBT2DATUM(&value, &d);
 #endif
-    return datum;
+    return d;
 }
 
 #ifndef DB_FIRST

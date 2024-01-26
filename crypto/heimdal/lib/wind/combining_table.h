@@ -1,5 +1,5 @@
 /* ./combining_table.h */
-/* Automatically generated at 2012-01-11T14:07:00.836450 */
+/* Automatically generated at 2022-11-15T13:59:51.697168 */
 
 #ifndef COMBINING_TABLE_H
 #define COMBINING_TABLE_H 1

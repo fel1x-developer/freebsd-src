@@ -33,13 +33,9 @@
 
 #include "kadmin_locl.h"
 
-#include <gssapi/gssapi.h>
-//#include <gssapi_krb5.h>
-//#include <gssapi_spnego.h>
-
-static gss_OID_desc krb5_mechanism =
-{9, (void *)(uintptr_t) "\x2a\x86\x48\x86\xf7\x12\x01\x02\x02"};
-#define GSS_KRB5_MECHANISM (&krb5_mechanism)
+#include <gssapi.h>
+#include <gssapi_krb5.h>
+#include <gssapi_spnego.h>
 
 #define CHECK(x)							\
 	do {								\
@@ -467,7 +463,7 @@ ret_principal_ent(krb5_context contextp,
     ent->max_life = flag;
     CHECK(krb5_ret_uint32(sp, &flag));
     if (flag == 0)
-	ret_principal_xdr(contextp, sp, &ent->mod_name);
+	CHECK(ret_principal_xdr(contextp, sp, &ent->mod_name));
     CHECK(krb5_ret_uint32(sp, &flag));
     ent->mod_date = flag;
     CHECK(krb5_ret_uint32(sp, &flag));
@@ -935,7 +931,7 @@ process_stream(krb5_context contextp,
 	    INSIST(gctx.ctx == NULL);
 
 	    gctx.inprogress = 1;
-	    /* FALL THOUGH */
+	    /* FALLTHROUGH */
 	case RPG_CONTINUE_INIT: {
 	    gss_name_t src_name = GSS_C_NO_NAME;
 	    krb5_data in;
@@ -1101,7 +1097,7 @@ handle_mit(krb5_context contextp, void *buf, size_t len, krb5_socket_t sock)
 
     dcontext = contextp;
 
-    sp = krb5_storage_from_fd(sock);
+    sp = krb5_storage_from_socket(sock);
     INSIST(sp != NULL);
 
     process_stream(contextp, buf, len, sp);

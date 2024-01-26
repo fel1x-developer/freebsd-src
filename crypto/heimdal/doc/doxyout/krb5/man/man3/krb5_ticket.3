@@ -1,8 +1,11 @@
-.TH "Heimdal Kerberos 5 ticket functions" 3 "11 Jan 2012" "Version 1.5.2" "HeimdalKerberos5library" \" -*- nroff -*-
+.TH "krb5_ticket" 3 "Tue Nov 15 2022" "Version 7.8.0" "Heimdal Kerberos 5 library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
-Heimdal Kerberos 5 ticket functions \- 
+krb5_ticket \- Heimdal Kerberos 5 ticket functions
+.SH SYNOPSIS
+.br
+.PP
 .SS "Functions"
 
 .in +1c
@@ -16,19 +19,21 @@ Heimdal Kerberos 5 ticket functions \-
 .SH "Function Documentation"
 .PP 
 .SS "KRB5_LIB_FUNCTION unsigned long KRB5_LIB_CALL krb5_ticket_get_flags (krb5_context context, const krb5_ticket * ticket)"
-.PP
 Get the flags from the Kerberos ticket
 .PP
-\fBParameters:\fP
+\fBParameters\fP
 .RS 4
 \fIcontext\fP Kerberos context 
 .br
 \fIticket\fP Kerberos ticket
 .RE
 .PP
-\fBReturns:\fP
+\fBReturns\fP
 .RS 4
 ticket flags 
 .RE
 .PP
 
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for Heimdal Kerberos 5 library from the source code\&.

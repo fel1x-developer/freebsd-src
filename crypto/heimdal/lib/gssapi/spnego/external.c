@@ -39,7 +39,6 @@
  *  negotiation token is identified by the Object Identifier
  *  iso.org.dod.internet.security.mechanism.snego (1.3.6.1.5.5.2).
  */
-#if 0
 static gss_mo_desc spnego_mo[] = {
     {
 	GSS_C_MA_SASL_MECH_NAME,
@@ -67,14 +66,21 @@ static gss_mo_desc spnego_mo[] = {
     },
     {
 	GSS_C_MA_MECH_NEGO,
-	GSS_MO_MA
+	GSS_MO_MA,
+	NULL,
+	NULL,
+	NULL,
+	NULL
     },
     {
 	GSS_C_MA_MECH_PSEUDO,
-	GSS_MO_MA
+	GSS_MO_MA,
+	NULL,
+	NULL,
+	NULL,
+	NULL
     }
 };
-#endif
 
 static gssapi_mech_interface_desc spnego_mech = {
     GMI_VERSION,
@@ -86,7 +92,7 @@ static gssapi_mech_interface_desc spnego_mech = {
     _gss_spnego_init_sec_context,
     _gss_spnego_accept_sec_context,
     _gss_spnego_process_context_token,
-    _gss_spnego_internal_delete_sec_context,
+    _gss_spnego_delete_sec_context,
     _gss_spnego_context_time,
     _gss_spnego_get_mic,
     _gss_spnego_verify_mic,
@@ -115,23 +121,12 @@ static gssapi_mech_interface_desc spnego_mech = {
     _gss_spnego_set_sec_context_option,
     _gss_spnego_set_cred_option,
     _gss_spnego_pseudo_random,
-#if 0
     _gss_spnego_wrap_iov,
     _gss_spnego_unwrap_iov,
     _gss_spnego_wrap_iov_length,
-#else
     NULL,
-    NULL,
-    NULL,
-#endif
-    NULL,
-#if 0
     _gss_spnego_export_cred,
     _gss_spnego_import_cred,
-#else
-    NULL,
-    NULL,
-#endif
     NULL,
     NULL,
     NULL,
@@ -139,13 +134,11 @@ static gssapi_mech_interface_desc spnego_mech = {
     NULL,
     NULL,
     NULL,
-#if 0
     spnego_mo,
     sizeof(spnego_mo) / sizeof(spnego_mo[0]),
-#else
     NULL,
-    0,
-#endif
+    NULL,
+    NULL,
     NULL,
     NULL,
     NULL,

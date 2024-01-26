@@ -47,9 +47,6 @@
 .Op Fl p | Fl Fl no-require-preauth
 .Op Fl Fl max-request= Ns Ar size
 .Op Fl H | Fl Fl enable-http
-.Op Fl Fl no-524
-.Op Fl Fl kerberos4
-.Op Fl Fl kerberos4-cross-realm
 .Oo Fl r Ar string \*(Ba Xo
 .Fl Fl v4-realm= Ns Ar string
 .Xc
@@ -76,7 +73,7 @@ Specifies the location of the config file, the default is
 .Pa /var/heimdal/kdc.conf .
 This is the only value that can't be specified in the config file.
 .It Fl p , Fl Fl no-require-preauth
-Turn off the requirement for pre-authentication in the initial AS-REQ
+Turn off the requirement for pre-autentication in the initial AS-REQ
 for all principals.
 The use of pre-authentication makes it more difficult to do offline
 password attacks.
@@ -84,7 +81,7 @@ You might want to turn it off if you have clients
 that don't support pre-authentication.
 Since the version 4 protocol doesn't support any pre-authentication,
 serving version 4 clients is just about the same as not requiring
-pre-authentication.
+pre-athentication.
 The default is to require pre-authentication.
 Adding the require-preauth per principal is a more flexible way of
 handling this.
@@ -93,14 +90,6 @@ Gives an upper limit on the size of the requests that the kdc is
 willing to handle.
 .It Fl H , Fl Fl enable-http
 Makes the kdc listen on port 80 and handle requests encapsulated in HTTP.
-.It Fl Fl no-524
-don't respond to 524 requests
-.It Fl Fl kerberos4
-respond to Kerberos 4 requests
-.It Fl Fl kerberos4-cross-realm
-respond to Kerberos 4 requests from foreign realms.
-This is a known security hole and should not be enabled unless you
-understand the consequences and are willing to live with them.
 .It Fl r Ar string , Fl Fl v4-realm= Ns Ar string
 What realm this server should act as when dealing with version 4
 requests.
@@ -124,7 +113,7 @@ option might be used.
 .It Fl Fl detach
 detach from pty and run as a daemon.
 .It Fl Fl disable-des
-disable add des encryption types, makes the kdc not use them.
+disable all des encryption types, makes the kdc not use them.
 .El
 .Pp
 All activities are logged to one or more destinations, see
@@ -166,6 +155,19 @@ Permit tickets with no addresses.
 This option is only relevant when check-ticket-addresses is TRUE.
 .It Li allow-anonymous = Va boolean
 Permit anonymous tickets with no addresses.
+.It Li historical_anon_realm = Va boolean
+Enables pre-7.0 non-RFC-comformant KDC behavior.
+With this option set to
+.Li true
+the client realm in anonymous pkinit AS replies will be the requested realm,
+rather than the RFC-conformant
+.Li WELLKNOWN:ANONYMOUS
+realm.
+This can have a security impact on servers that expect to grant access to
+anonymous-but-authenticated to the KDC users of the realm in question:
+they would also grant access to unauthenticated anonymous users.
+As such, it is not recommend to set this option to
+.Li true.
 .It Li max-kdc-datagram-reply-length = Va number
 Maximum packet size the UDP rely that the KDC will transmit, instead
 the KDC sends back a reply telling the client to use TCP instead.

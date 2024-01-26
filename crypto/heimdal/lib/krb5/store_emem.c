@@ -70,7 +70,8 @@ emem_store(krb5_storage *sp, const void *data, size_t size)
 	s->base = base;
 	s->ptr = (unsigned char*)base + off;
     }
-    memmove(s->ptr, data, size);
+    if (size)
+        memmove(s->ptr, data, size);
     sp->seek(sp, size, SEEK_CUR);
     return size;
 }
@@ -156,6 +157,7 @@ emem_free(krb5_storage *sp)
  * @sa krb5_storage_from_readonly_mem()
  * @sa krb5_storage_from_fd()
  * @sa krb5_storage_from_data()
+ * @sa krb5_storage_from_socket()
  */
 
 KRB5_LIB_FUNCTION krb5_storage * KRB5_LIB_CALL
@@ -189,6 +191,7 @@ krb5_storage_emem(void)
     sp->store = emem_store;
     sp->seek = emem_seek;
     sp->trunc = emem_trunc;
+    sp->fsync = NULL;
     sp->free = emem_free;
     sp->max_alloc = UINT_MAX/8;
     return sp;

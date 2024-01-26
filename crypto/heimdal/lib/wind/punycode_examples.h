@@ -1,5 +1,5 @@
 /* ./punycode_examples.h */
-/* Automatically generated at 2012-01-11T14:07:08.539140 */
+/* Automatically generated at 2022-11-15T14:04:18.893502 */
 
 #ifndef PUNYCODE_EXAMPLES_H
 #define PUNYCODE_EXAMPLES_H 1

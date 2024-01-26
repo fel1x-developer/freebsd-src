@@ -1,8 +1,11 @@
-.TH "hx509 revokation checking functions" 3 "11 Jan 2012" "Version 1.5.2" "Heimdalx509library" \" -*- nroff -*-
+.TH "hx509_revoke" 3 "Tue Nov 15 2022" "Version 7.8.0" "Heimdal x509 library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
-hx509 revokation checking functions \- 
+hx509_revoke \- hx509 revokation checking functions
+.SH SYNOPSIS
+.br
+.PP
 .SS "Functions"
 
 .in +1c
@@ -30,14 +33,13 @@ hx509 revokation checking functions \-
 .in -1c
 .SH "Detailed Description"
 .PP 
-See the \fBRevocation methods\fP for description and examples. 
+See the \fBRevocation methods\fP for description and examples\&. 
 .SH "Function Documentation"
 .PP 
 .SS "int hx509_ocsp_request (hx509_context context, hx509_certs reqcerts, hx509_certs pool, hx509_cert signer, const AlgorithmIdentifier * digest, heim_octet_string * request, heim_octet_string * nonce)"
+Create an OCSP request for a set of certificates\&.
 .PP
-Create an OCSP request for a set of certificates.
-.PP
-\fBParameters:\fP
+\fBParameters\fP
 .RS 4
 \fIcontext\fP a hx509 context 
 .br
@@ -49,87 +51,82 @@ Create an OCSP request for a set of certificates.
 .br
 \fIdigest\fP the signing algorithm in the request, if NULL use the default signature algorithm, 
 .br
-\fIrequest\fP the encoded request, free with free_heim_octet_string(). 
+\fIrequest\fP the encoded request, free with free_heim_octet_string()\&. 
 .br
-\fInonce\fP nonce in the request, free with free_heim_octet_string().
+\fInonce\fP nonce in the request, free with free_heim_octet_string()\&.
 .RE
 .PP
-\fBReturns:\fP
+\fBReturns\fP
 .RS 4
-An hx509 error code, see \fBhx509_get_error_string()\fP. 
+An hx509 error code, see \fBhx509_get_error_string()\fP\&. 
 .RE
 .PP
 
 .SS "int hx509_revoke_add_crl (hx509_context context, hx509_revoke_ctx ctx, const char * path)"
+Add a CRL file to the revokation context\&.
 .PP
-Add a CRL file to the revokation context.
-.PP
-\fBParameters:\fP
+\fBParameters\fP
 .RS 4
 \fIcontext\fP hx509 context 
 .br
 \fIctx\fP hx509 revokation context 
 .br
-\fIpath\fP path to file that is going to be added to the context.
+\fIpath\fP path to file that is going to be added to the context\&.
 .RE
 .PP
-\fBReturns:\fP
+\fBReturns\fP
 .RS 4
-An hx509 error code, see \fBhx509_get_error_string()\fP. 
+An hx509 error code, see \fBhx509_get_error_string()\fP\&. 
 .RE
 .PP
 
 .SS "int hx509_revoke_add_ocsp (hx509_context context, hx509_revoke_ctx ctx, const char * path)"
+Add a OCSP file to the revokation context\&.
 .PP
-Add a OCSP file to the revokation context.
-.PP
-\fBParameters:\fP
+\fBParameters\fP
 .RS 4
 \fIcontext\fP hx509 context 
 .br
 \fIctx\fP hx509 revokation context 
 .br
-\fIpath\fP path to file that is going to be added to the context.
+\fIpath\fP path to file that is going to be added to the context\&.
 .RE
 .PP
-\fBReturns:\fP
+\fBReturns\fP
 .RS 4
-An hx509 error code, see \fBhx509_get_error_string()\fP. 
+An hx509 error code, see \fBhx509_get_error_string()\fP\&. 
 .RE
 .PP
 
 .SS "void hx509_revoke_free (hx509_revoke_ctx * ctx)"
+Free a hx509 revokation context\&.
 .PP
-Free a hx509 revokation context.
-.PP
-\fBParameters:\fP
+\fBParameters\fP
 .RS 4
 \fIctx\fP context to be freed 
 .RE
 .PP
 
 .SS "int hx509_revoke_init (hx509_context context, hx509_revoke_ctx * ctx)"
+Allocate a revokation context\&. Free with \fBhx509_revoke_free()\fP\&.
 .PP
-Allocate a revokation context. Free with \fBhx509_revoke_free()\fP.
-.PP
-\fBParameters:\fP
+\fBParameters\fP
 .RS 4
-\fIcontext\fP A hx509 context. 
+\fIcontext\fP A hx509 context\&. 
 .br
-\fIctx\fP returns a newly allocated revokation context.
+\fIctx\fP returns a newly allocated revokation context\&.
 .RE
 .PP
-\fBReturns:\fP
+\fBReturns\fP
 .RS 4
-An hx509 error code, see \fBhx509_get_error_string()\fP. 
+An hx509 error code, see \fBhx509_get_error_string()\fP\&. 
 .RE
 .PP
 
 .SS "int hx509_revoke_ocsp_print (hx509_context context, const char * path, FILE * out)"
+Print the OCSP reply stored in a file\&.
 .PP
-Print the OCSP reply stored in a file.
-.PP
-\fBParameters:\fP
+\fBParameters\fP
 .RS 4
 \fIcontext\fP a hx509 context 
 .br
@@ -138,17 +135,16 @@ Print the OCSP reply stored in a file.
 \fIout\fP the out FILE descriptor to print the reply on
 .RE
 .PP
-\fBReturns:\fP
+\fBReturns\fP
 .RS 4
-An hx509 error code, see \fBhx509_get_error_string()\fP. 
+An hx509 error code, see \fBhx509_get_error_string()\fP\&. 
 .RE
 .PP
 
 .SS "int hx509_revoke_verify (hx509_context context, hx509_revoke_ctx ctx, hx509_certs certs, time_t now, hx509_cert cert, hx509_cert parent_cert)"
+Check that a certificate is not expired according to a revokation context\&. Also need the parent certificte to the check OCSP parent identifier\&.
 .PP
-Check that a certificate is not expired according to a revokation context. Also need the parent certificte to the check OCSP parent identifier.
-.PP
-\fBParameters:\fP
+\fBParameters\fP
 .RS 4
 \fIcontext\fP hx509 context 
 .br
@@ -163,9 +159,12 @@ Check that a certificate is not expired according to a revokation context. Also 
 \fIparent_cert\fP 
 .RE
 .PP
-\fBReturns:\fP
+\fBReturns\fP
 .RS 4
-An hx509 error code, see \fBhx509_get_error_string()\fP. 
+An hx509 error code, see \fBhx509_get_error_string()\fP\&. 
 .RE
 .PP
 
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for Heimdal x509 library from the source code\&.

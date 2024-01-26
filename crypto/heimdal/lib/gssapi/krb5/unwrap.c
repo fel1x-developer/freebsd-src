@@ -50,7 +50,7 @@ unwrap_des
   size_t len;
   EVP_MD_CTX *md5;
   u_char hash[16];
-  EVP_CIPHER_CTX *des_ctx;
+  EVP_CIPHER_CTX des_ctx;
   DES_key_schedule schedule;
   DES_cblock deskey;
   DES_cblock zero;
@@ -111,17 +111,12 @@ unwrap_des
 	  deskey[i] ^= 0xf0;
 
 
-      des_ctx = EVP_CIPHER_CTX_new();
-      if (des_ctx == NULL) {
-	  memset (deskey, 0, sizeof(deskey));
-	  *minor_status = ENOMEM;
-	  return GSS_S_FAILURE;
-      }
-      EVP_CipherInit_ex(des_ctx, EVP_des_cbc(), NULL, deskey, zero, 0);
-      EVP_Cipher(des_ctx, p, p, input_message_buffer->length - len);
-      EVP_CIPHER_CTX_free(des_ctx);
+      EVP_CIPHER_CTX_init(&des_ctx);
+      EVP_CipherInit_ex(&des_ctx, EVP_des_cbc(), NULL, deskey, zero, 0);
+      EVP_Cipher(&des_ctx, p, p, input_message_buffer->length - len);
+      EVP_CIPHER_CTX_cleanup(&des_ctx);
 
-      memset (deskey, 0, sizeof(deskey));
+      memset (&schedule, 0, sizeof(schedule));
   }
 
   if (IS_DCE_STYLE(context_handle)) {
@@ -147,29 +142,19 @@ unwrap_des
   DES_set_key_unchecked (&deskey, &schedule);
   DES_cbc_cksum ((void *)hash, (void *)hash, sizeof(hash),
 		 &schedule, &zero);
-  if (ct_memcmp (p - 8, hash, 8) != 0) {
-    memset (deskey, 0, sizeof(deskey));
-    memset (&schedule, 0, sizeof(schedule));
+  if (ct_memcmp (p - 8, hash, 8) != 0)
     return GSS_S_BAD_MIC;
-  }
 
   /* verify sequence number */
-
-  des_ctx = EVP_CIPHER_CTX_new();
-  if (des_ctx == NULL) {
-    memset (deskey, 0, sizeof(deskey));
-    memset (&schedule, 0, sizeof(schedule));
-    *minor_status = ENOMEM;
-    return GSS_S_FAILURE;
-  }
 
   HEIMDAL_MUTEX_lock(&context_handle->ctx_id_mutex);
 
   p -= 16;
 
-  EVP_CipherInit_ex(des_ctx, EVP_des_cbc(), NULL, key->keyvalue.data, hash, 0);
-  EVP_Cipher(des_ctx, p, p, 8);
-  EVP_CIPHER_CTX_free(des_ctx);
+  EVP_CIPHER_CTX_init(&des_ctx);
+  EVP_CipherInit_ex(&des_ctx, EVP_des_cbc(), NULL, key->keyvalue.data, hash, 0);
+  EVP_Cipher(&des_ctx, p, p, 8);
+  EVP_CIPHER_CTX_cleanup(&des_ctx);
 
   memset (deskey, 0, sizeof(deskey));
   memset (&schedule, 0, sizeof(schedule));
@@ -413,7 +398,7 @@ unwrap_des3
 
 OM_uint32 GSSAPI_CALLCONV _gsskrb5_unwrap
            (OM_uint32 * minor_status,
-            const gss_ctx_id_t context_handle,
+            gss_const_ctx_id_t context_handle,
             const gss_buffer_t input_message_buffer,
             gss_buffer_t output_message_buffer,
             int * conf_state,
@@ -423,7 +408,6 @@ OM_uint32 GSSAPI_CALLCONV _gsskrb5_unwrap
   krb5_keyblock *key;
   krb5_context context;
   OM_uint32 ret;
-  krb5_keytype keytype;
   gsskrb5_ctx ctx = (gsskrb5_ctx) context_handle;
 
   output_message_buffer->value = NULL;
@@ -445,12 +429,13 @@ OM_uint32 GSSAPI_CALLCONV _gsskrb5_unwrap
       *minor_status = ret;
       return GSS_S_FAILURE;
   }
-  krb5_enctype_to_keytype (context, key->keytype, &keytype);
 
   *minor_status = 0;
 
-  switch (keytype) {
-  case KEYTYPE_DES :
+  switch (key->keytype) {
+  case KRB5_ENCTYPE_DES_CBC_CRC :
+  case KRB5_ENCTYPE_DES_CBC_MD4 :
+  case KRB5_ENCTYPE_DES_CBC_MD5 :
 #ifdef HEIM_WEAK_CRYPTO
       ret = unwrap_des (minor_status, ctx,
 			input_message_buffer, output_message_buffer,
@@ -459,13 +444,14 @@ OM_uint32 GSSAPI_CALLCONV _gsskrb5_unwrap
       ret = GSS_S_FAILURE;
 #endif
       break;
-  case KEYTYPE_DES3 :
+  case KRB5_ENCTYPE_DES3_CBC_MD5 :
+  case KRB5_ENCTYPE_DES3_CBC_SHA1 :
       ret = unwrap_des3 (minor_status, ctx, context,
 			 input_message_buffer, output_message_buffer,
 			 conf_state, qop_state, key);
       break;
-  case KEYTYPE_ARCFOUR:
-  case KEYTYPE_ARCFOUR_56:
+  case KRB5_ENCTYPE_ARCFOUR_HMAC_MD5:
+  case KRB5_ENCTYPE_ARCFOUR_HMAC_MD5_56:
       ret = _gssapi_unwrap_arcfour (minor_status, ctx, context,
 				    input_message_buffer, output_message_buffer,
 				    conf_state, qop_state, key);

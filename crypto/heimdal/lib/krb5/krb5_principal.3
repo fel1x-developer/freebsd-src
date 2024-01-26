@@ -293,7 +293,7 @@ A reason to return
 .Dv krb5_data
 was that it was believed that principal components could contain
 binary data, but this belief was unfounded, and it has been decided
-that principal components are in fact UTF8, so it's safe to use zero
+that principal components are infact UTF8, so it's safe to use zero
 terminated strings.
 .Pp
 It's generally not necessary to look at the components of a principal.
@@ -362,7 +362,6 @@ On failure the function returns an error code and set the error
 string.
 .\" .Sh EXAMPLES
 .Sh SEE ALSO
-.Xr krb5_425_conv_principal 3 ,
 .Xr krb5_config 3 ,
 .Xr krb5.conf 5
 .Sh BUGS

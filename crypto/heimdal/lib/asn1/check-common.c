@@ -33,9 +33,7 @@
  * SUCH DAMAGE.
  */
 
-#ifdef HAVE_CONFIG_H
 #include <config.h>
-#endif
 #ifdef HAVE_SYS_MMAN_H
 #include <sys/mman.h>
 #endif
@@ -46,8 +44,6 @@
 
 #include "asn1-common.h"
 #include "check-common.h"
-
-RCSID("$Id$");
 
 struct map_page {
     void *start;
@@ -196,12 +192,12 @@ int
 generic_test (const struct test_case *tests,
 	      unsigned ntests,
 	      size_t data_size,
-	      int (ASN1CALL *encode)(unsigned char *, size_t, void *, size_t *),
-	      int (ASN1CALL *length)(void *),
-	      int (ASN1CALL *decode)(unsigned char *, size_t, void *, size_t *),
-	      int (ASN1CALL *free_data)(void *),
+              generic_encode encode,
+              generic_length length,
+              generic_decode decode,
+              generic_free free_data,
 	      int (*cmp)(void *a, void *b),
-	      int (ASN1CALL *copy)(const void *from, void *to))
+              generic_copy copy)
 {
     unsigned char *buf, *buf2;
     int i;
