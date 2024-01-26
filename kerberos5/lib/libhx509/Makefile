@@ -4,7 +4,7 @@ PACKAGE=	kerberos-lib
 LIB=	hx509
 LDFLAGS=	-Wl,--no-undefined
 VERSION_MAP= ${KRB5DIR}/lib/hx509/version-script.map
-LIBADD=	asn1 com_err crypto roken wind
+LIBADD=	asn1 com_err crypto hcrypto heimbase roken wind
 
 MAN=	hx509.3 \
 	hx509_ca.3 \
@@ -179,6 +179,7 @@ SRCS=	ca.c \
 	cms.c \
 	collector.c \
 	crypto.c \
+	crypto-ec.c \
 	doxygen.c \
 	error.c \
 	env.c \

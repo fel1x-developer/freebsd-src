@@ -1,7 +1,7 @@
 
 .include <src.opts.mk>
 
-SUBDIR=	libasn1 libhdb \
+SUBDIR=	libasn1 libcom_err libhdb \
 	libheimntlm libhx509 libkadm5clnt libkadm5srv libkrb5 \
 	libroken libsl libvers libkdc libwind libheimbase libheimipcc libheimipcs
 

@@ -2,14 +2,7 @@
 PACKAGE=	kerberos-lib
 
 LIB=	vers
-INTERNALLIB=
-SRCS=	print_version.c roken.h
-CFLAGS+=-I. -I${KRB5DIR}/lib/roken
-
-CLEANFILES= roken.h
-
-roken.h:
-	${MAKE_ROKEN} > ${.TARGET}
+SRCS=	print_version.c
 
 .include <bsd.lib.mk>
 

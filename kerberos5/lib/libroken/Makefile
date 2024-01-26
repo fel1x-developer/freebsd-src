@@ -2,8 +2,10 @@
 PACKAGE=	kerberos-lib
 
 LIB=	roken
-LIBADD=	crypt
+MAN=	getarg.3 parse_time.3 rtbl.3 ecalloc.3
 VERSION_MAP=	${KRB5DIR}/lib/roken/version-script.map
+LIBADD=	crypt
+
 INCS=	roken.h \
 	roken-common.h \
 	base64.h \
@@ -17,30 +19,31 @@ INCS=	roken.h \
 	xdbm.h
 
 SRCS=	base64.c \
-	copyhostent.c \
-	ecalloc.c \
-	emalloc.c \
-	erealloc.c \
-	estrdup.c \
-	strlwr.c \
-	strsep_copy.c \
-	strupr.c \
 	bswap.c \
 	cloexec.c \
 	concat.c \
+	copyhostent.c \
 	ct.c \
+	daemon.c \
+	detach.c \
 	doxygen.c \
 	dumpdata.c \
+	ecalloc.c \
+	emalloc.c \
 	environment.c \
 	eread.c \
+	erealloc.c \
 	esetenv.c \
+	estrdup.c \
 	ewrite.c \
 	get_default_username.c \
 	get_window_size.c \
 	getaddrinfo_hostspec.c \
 	getarg.c \
+	getcap.c \
 	getnameinfo_verified.c \
 	getprogname.c \
+	getxxyyy.c \
 	h_errno.c \
 	hex.c \
 	hostent_find_fqdn.c \
@@ -48,15 +51,18 @@ SRCS=	base64.c \
 	k_getpwnam.c \
 	k_getpwuid.c \
 	mini_inetd.c \
+	mkdir.c \
+	mkstemp.c \
+	ndbm_wrap.c \
 	net_read.c \
 	net_write.c \
 	parse_bytes.c \
 	parse_time.c \
 	parse_units.c \
+	qsort.c \
 	rand.c \
 	realloc.c \
 	resolve.c \
-	roken.h \
 	roken_gethostby.c \
 	rtbl.c \
 	setprogname.c \
@@ -66,7 +72,10 @@ SRCS=	base64.c \
 	socket.c \
 	strcollect.c \
 	strerror_r.c \
+	strlwr.c \
 	strpool.c \
+	strsep_copy.c \
+	strupr.c \
 	timeval.c \
 	tm2time.c \
 	unvis.c \
@@ -74,13 +83,11 @@ SRCS=	base64.c \
 	vis.c \
 	warnerr.c \
 	write_pid.c \
-	xfree.c \
-	fbsd_ossl_provider_load.c
+	xfree.c
 
 CFLAGS+=-I${KRB5DIR}/lib/roken \
 	-I${SRCTOP}/kerberos5/include \
-	-I${KRB5DIR}/lib/krb5 \
-	-I${SRCTOP}/crypto/openssl/include -I.
+	-I${KRB5DIR}/lib/krb5 -I.
 
 CLEANFILES= roken.h
 

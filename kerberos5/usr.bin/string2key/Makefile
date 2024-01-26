@@ -9,7 +9,9 @@ CFLAGS+=	-I${KRB5DIR}/kdc \
 		-I${KRB5DIR}/lib/roken \
 		-I${KRB5DIR}/lib/windc \
 		-I${SRCTOP}/contrib/com_err
-LIBADD=	krb5 roken crypto vers
+SRC=	string2key.c \
+	headers.h
+LIBADD=	hdb krb5 hcrypto asn1 roken vers
 
 .include <bsd.prog.mk>
 

@@ -3307,7 +3307,7 @@ _kerberos5_lib_libheimntlm= kerberos5/lib/libheimntlm
 _libsqlite3= lib/libsqlite3
 _kerberos5_lib_libheimipcc= kerberos5/lib/libheimipcc
 _kerberos5_lib_libwind= kerberos5/lib/libwind
-_libcom_err= lib/libcom_err
+_libcom_err= kerberos5/lib/libcom_err
 .endif
 
 .if ${MK_NIS} != "no"

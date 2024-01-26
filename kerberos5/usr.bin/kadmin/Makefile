@@ -2,7 +2,7 @@
 PACKAGE=	kerberos
 
 PROG=	kadmin
-MAN=	kadmin.8
+MAN=	kadmin.1
 
 SRCS=	add_enctype.c \
 	ank.c \
@@ -26,8 +26,8 @@ SRCS=	add_enctype.c \
 	util.c
 
 CFLAGS+=-I${KRB5DIR}/lib/asn1 -I${KRB5DIR}/lib/krb5 -I${KRB5DIR}/lib/roken \
-	-I${KRB5DIR}/lib/sl -I${SRCTOP}/contrib/com_err -I. ${LDAPCFLAGS}
-LIBADD=	kadm5clnt kadm5srv hdb krb5 roken vers sl asn1 crypto edit
+	-I${KRB5DIR}/lib/sl -I. ${LDAPCFLAGS}
+LIBADD=	kadm5clnt kadm5srv hdb krb5 roken sl asn1 hcrypto edit vers
 DPADD=	${LDAPDPADD}
 LDADD=	${LDAPLDADD}
 LDFLAGS=${LDAPLDFLAGS}

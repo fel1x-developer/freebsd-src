@@ -6,7 +6,7 @@ MAN=	kdigest.8
 CFLAGS+=	-I${KRB5DIR}/lib/asn1 \
 		-I${KRB5DIR}/lib/roken \
 		-I${KRB5DIR}/lib/sl -I.
-LIBADD=	krb5 heimntlm roken crypto edit sl vers
+LIBADD=	asn1 crypt edit hcrypto heimntlm krb5 roken sl vers
 SRCS=	kdigest.c \
 	kdigest-commands.c \
 	kdigest-commands.h

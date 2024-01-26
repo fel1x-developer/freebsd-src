@@ -172,7 +172,6 @@ SUBDIR.${MK_FILE}+=	libmagic
 SUBDIR.${MK_GPIO}+=	libgpio
 SUBDIR.${MK_GSSAPI}+=	libgssapi librpcsec_gss
 SUBDIR.${MK_ICONV}+=	libiconv_modules
-SUBDIR.${MK_KERBEROS_SUPPORT}+=	libcom_err
 SUBDIR.${MK_LDNS}+=	libldns
 SUBDIR.${MK_STATS}+=	libstats
 

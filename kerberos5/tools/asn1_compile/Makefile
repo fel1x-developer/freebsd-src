@@ -3,14 +3,14 @@ PACKAGE=	kerberos
 
 PROG=	asn1_compile
 MAN=
+LDFLAGS=	-Wl,--no-undefined
 LIBROKEN_A=	${.OBJDIR:H:H}/lib/libroken/libroken.a
 LIBADD=	vers
 LDADD=	${LIBROKEN_A}
 DPADD=	${LIBROKEN_A}
 MK_PIE:=	no
 
-SRCS=	\
-	asn1parse.y \
+SRCS=	asn1parse.y \
 	gen.c \
 	gen_copy.c \
 	gen_decode.c \
@@ -23,7 +23,6 @@ SRCS=	\
 	hash.c \
 	lex.l \
 	main.c \
-	roken.h \
 	symbol.c
 
 CFLAGS+=-I${KRB5DIR}/lib/roken -I${KRB5DIR}/lib/asn1 -I.

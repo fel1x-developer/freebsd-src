@@ -4,7 +4,7 @@ PACKAGE=	kerberos-lib
 LIB=	hdb
 LDFLAGS=	-Wl,--no-undefined ${LDAPLDFLAGS}
 VERSION_MAP=	${KRB5DIR}/lib/hdb/version-script.map
-LIBADD=	asn1 com_err krb5 roken sqlite3
+LIBADD=	asn1 com_err hcrypto heimbase krb5 roken sqlite3
 LDADD=	${LDAPLDADD}
 DPADD=	${LDAPDPADD}
 
@@ -42,7 +42,7 @@ INCS=	hdb-protos.h \
 
 SRCS=	common.c \
 	db.c \
-	dbinfo.c \
+	db3.c \
 	ext.c \
 	hdb-ldap.c \
 	hdb.c \
@@ -50,9 +50,12 @@ SRCS=	common.c \
 	hdb_err.h \
 	hdb-sqlite.c \
 	hdb-keytab.c \
+	hdb-mdb.c \
 	hdb-mitdb.c \
+	hdb_locl.h \
 	keys.c \
 	keytab.c \
+	dbinfo.c \
 	mkey.c \
 	ndbm.c \
 	print.c \
@@ -77,11 +80,13 @@ GEN=	asn1_Salt.x \
 	asn1_HDB_Ext_Lan_Manager_OWF.x \
 	asn1_HDB_Ext_Password.x \
 	asn1_HDB_Ext_Aliases.x \
+	asn1_HDB_Ext_KeySet.x \
 	asn1_HDB_extension.x \
 	asn1_HDB_extensions.x \
 	asn1_hdb_entry.x \
 	asn1_hdb_entry_alias.x \
 	asn1_hdb_keyset.x \
+	asn1_Keys.x \
 	hdb_asn1.hx \
 	hdb_asn1-priv.hx
 
@@ -91,7 +96,7 @@ CLEANFILES=	${GEN} ${GEN:S/.x$/.c/:S/.hx$/.h/} hdb_asn1_files \
 .ORDER: ${GEN}
 ${GEN:[2..-1]}: .NOMETA
 ${GEN}: hdb.asn1
-	${ASN1_COMPILE} ${.ALLSRC:M*.asn1} hdb_asn1
+	${ASN1_COMPILE} --sequence=HDB-Ext-KeySet --sequence=Keys ${.ALLSRC:M*.asn1} hdb_asn1
 
 .SUFFIXES: .h .c .x .hx
 

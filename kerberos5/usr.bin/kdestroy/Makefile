@@ -3,7 +3,7 @@ PACKAGE=	kerberos
 
 PROG=	kdestroy
 CFLAGS+=-I${KRB5DIR}/lib/roken
-LIBADD=	kafs5 krb5 roken vers
+LIBADD=	kafs5 krb5 heimntlm roken vers
 MAN=	kdestroy.1
 
 .include <bsd.prog.mk>

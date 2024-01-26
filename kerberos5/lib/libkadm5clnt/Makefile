@@ -36,7 +36,7 @@ SRCS=	ad.c \
 	send_recv.c
 
 CFLAGS+=-I${KRB5DIR}/lib/kadm5 -I${KRB5DIR}/lib/asn1 -I${KRB5DIR}/lib/roken \
-	-I${SRCTOP}/contrib/com_err -I.
+	-I${SRCTOP}/contrib/com_err -I${KRB5DIR}/lib/krb5 -I.
 
 .include <bsd.lib.mk>
 

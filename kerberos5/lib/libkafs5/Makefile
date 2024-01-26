@@ -3,7 +3,7 @@ PACKAGE=	kerberos-lib
 
 LIB=	kafs5
 LDFLAGS=	-Wl,--no-undefined
-LIBADD=	asn1 krb5 roken
+LIBADD=	asn1 hcrypto krb5 roken
 INCS=	kafs.h
 MAN=	kafs5.3
 VERSION_MAP=	${.CURDIR}/version.map
@@ -23,7 +23,10 @@ MLINKS=	kafs5.3 k_afs_cell_of_file.3 \
 	kafs5.3 krb_afslog.3 \
 	kafs5.3 krb_afslog_uid.3
 
-SRCS=	afssys.c afskrb5.c common.c
+SRCS=	afssys.c \
+	afskrb5.c \
+	common.c \
+	rxkad_kdf.c
 
 CFLAGS+=	-I${KRB5DIR}/lib/kafs \
 		-I${KRB5DIR}/lib/krb5 \
